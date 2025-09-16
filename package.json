@@ -1,0 +1,12 @@
+{
+  "name": "popcat",
+  "version": "1.0.0",
+  "description": "A Popcat game with click count synchronization",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
