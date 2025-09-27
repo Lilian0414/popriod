@@ -3,6 +3,8 @@ const cat = document.getElementById('cat');    // 閉嘴圖片 1.png
 const cat2 = document.getElementById('cat2');  // 張嘴圖片 2.png
 const clickCountElement = document.getElementById('clickCount');
 const globalClickCountElement = document.getElementById('globalClickCount');
+const API_BASE = "https://fuckperiod-api.vercel.app";
+
 
 // 閉嘴的貓咪圖片
 const closedMouthCatImg = cat;  // 直接使用圖片元素
