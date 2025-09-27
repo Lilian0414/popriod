@@ -100,7 +100,7 @@ setInterval(() => {
     syncClickCount(pendingClicks);
     pendingClicks = 0;
   }
-}, 500);
+}, 1000);
 
 // === 分數動畫 (不用 reflow) ===
 function animateScoreBounce() {
