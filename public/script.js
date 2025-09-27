@@ -88,13 +88,12 @@ function monitorClickSpeed() {
   }
 }
 
-// 同步點擊數到後端
 async function syncClickCount(increment) {
   try {
-    const response = await fetch('/api/clicks', {
+    const response = await fetch(API_URL, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({clicks: increment})  // 只送這次的增量
+      body: JSON.stringify({ clicks: increment })  // 只送這次的增量
     });
 
     if (!response.ok) throw new Error('Failed to sync clicks');
@@ -107,7 +106,6 @@ async function syncClickCount(increment) {
     console.error('Error syncing clicks:', error);
   }
 }
-
 
 function animateScoreBounce() {
   clickCountElement.classList.remove('bounce');
@@ -170,7 +168,7 @@ clickCountElement.textContent = clickCount;
 // 頁面載入時從後端獲取總點擊數
 async function loadTotalClicks() {
   try {
-    const response = await fetch('/api/clicks');
+    const response = await fetch(API_URL);
     if (response.ok) {
       const data = await response.json();
       globalClickCountElement.textContent = data.totalClicks || 0;
