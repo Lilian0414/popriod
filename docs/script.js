@@ -7,18 +7,22 @@ const globalClickCountElement = document.getElementById('globalClickCount');
 // API 基底網址 (指向 Vercel 部署)
 const API_BASE = "https://fuckperiod-api.vercel.app";
 
-// 閉嘴的貓咪圖片
+// 閉嘴 / 張嘴 / 狂暴模式圖片
 const closedMouthCatImg = cat;
 const openMouthCatImg = cat2;
 const frenzyCatImg = cat2;
 
-// 點擊音效
-const popSound = new Audio('pa2.mp3');
-const frenzySound = new Audio('pa2.mp3');
+// === 音效池 ===
+const poolSize = 5;
+const soundPool = Array.from({ length: poolSize }, () => new Audio('pa2.mp3'));
+let poolIndex = 0;
 
-// 設定音效音量
-popSound.volume = 1;
-frenzySound.volume = 1;
+function playSound() {
+  const sound = soundPool[poolIndex];
+  sound.currentTime = 0;
+  sound.play().catch(() => {});
+  poolIndex = (poolIndex + 1) % poolSize;
+}
 
 // 點擊速度追蹤
 let clickTimes = [];
@@ -34,18 +38,11 @@ function calculateClickSpeed() {
   return clickTimes.length;
 }
 
-// 音效播放函數
-function playSound(sound) {
-  sound.currentTime = 0;
-  sound.play().catch(error => console.log('音效播放失敗:', error));
-}
-
 // 啟動狂暴模式
 function activateFrenzyMode() {
   if (!isFrenzyMode) {
     isFrenzyMode = true;
     document.body.classList.add('frenzy-mode');
-    playSound(frenzySound);
     closedMouthCatImg.style.display = 'none';
     openMouthCatImg.style.display = 'none';
     frenzyCatImg.style.display = 'block';
@@ -78,7 +75,8 @@ function monitorClickSpeed() {
   }
 }
 
-// 同步點擊數到後端
+// === 批次同步點擊數到後端 ===
+let pendingClicks = 0;
 async function syncClickCount(increment) {
   try {
     const response = await fetch(`${API_BASE}/api/clicks`, {
@@ -86,7 +84,6 @@ async function syncClickCount(increment) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ clicks: increment })
     });
-
     if (!response.ok) throw new Error('Failed to sync clicks');
 
     const data = await response.json();
@@ -97,15 +94,21 @@ async function syncClickCount(increment) {
     console.error('Error syncing clicks:', error);
   }
 }
+// 每 500ms 批次送
+setInterval(() => {
+  if (pendingClicks > 0) {
+    syncClickCount(pendingClicks);
+    pendingClicks = 0;
+  }
+}, 500);
 
-// 分數動畫
+// === 分數動畫 (不用 reflow) ===
 function animateScoreBounce() {
-  clickCountElement.classList.remove('bounce');
-  void clickCountElement.offsetWidth; // reflow
   clickCountElement.classList.add('bounce');
+  setTimeout(() => clickCountElement.classList.remove('bounce'), 200);
 }
 
-// 按下時
+// === 點擊事件 ===
 document.addEventListener('mousedown', () => {
   const now = Date.now();
   clickTimes.push(now);
@@ -118,15 +121,14 @@ document.addEventListener('mousedown', () => {
   }
 
   clickCount++;
+  pendingClicks++; // ← 只記錄，不馬上送 API
   clickCountElement.textContent = clickCount;
   localStorage.setItem('localCount', clickCount);
 
   animateScoreBounce();
-  syncClickCount(1);
-  playSound(isFrenzyMode ? frenzySound : popSound);
+  playSound();
 });
 
-// 放開時
 document.addEventListener('mouseup', () => {
   if (!isFrenzyMode) {
     closedMouthCatImg.style.display = 'block';
@@ -134,7 +136,6 @@ document.addEventListener('mouseup', () => {
   }
 });
 
-// 滑鼠離開時
 document.addEventListener('mouseleave', () => {
   if (!isFrenzyMode) {
     closedMouthCatImg.style.display = 'block';
