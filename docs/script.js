@@ -27,7 +27,7 @@ function playSound() {
 // 點擊速度追蹤
 let clickTimes = [];
 let isFrenzyMode = false;
-const FRENZY_THRESHOLD = 10;    // 每秒5次點擊觸發狂暴模式
+const FRENZY_THRESHOLD = 8;    // 每秒8次點擊觸發狂暴模式
 const FRENZY_DURATION = 3000;  // 狂暴模式持續3秒
 let frenzyTimer = null;
 
