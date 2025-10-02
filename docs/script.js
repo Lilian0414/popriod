@@ -83,17 +83,20 @@ async function syncClickCount(increment) {
   } catch (error) {
     console.error('Error syncing clicks:', error);
   }
-}]
+}
+
 setInterval(() => {
   if (pendingClicks > 0) {
     syncClickCount(pendingClicks);
     pendingClicks = 0;
   }
 }, 1000);
+
 function animateScoreBounce() {
   clickCountElement.classList.add('bounce');
   setTimeout(() => clickCountElement.classList.remove('bounce'), 200);
 }
+
 document.addEventListener('mousedown', () => {
   const now = Date.now();
   clickTimes.push(now);
