@@ -103,18 +103,28 @@ async function syncClickCount(increment) {
   }
 }
 
+let firstLoad = true; // 加這個
+
 async function loadTotalClicks() {
   try {
     const response = await fetch(`${API_BASE}/api/clicks`);
     if (response.ok) {
       const data = await response.json();
-      const current = parseInt(globalClickCountElement.textContent) || 0;
-      animateGlobalCount(current, data.totalClicks || 0);
+      if (firstLoad) {
+        // 第一次：直接設定數字
+        globalClickCountElement.textContent = data.totalClicks || 0;
+        firstLoad = false;
+      } else {
+        // 之後：平滑跳動
+        const current = parseInt(globalClickCountElement.textContent) || 0;
+        animateGlobalCount(current, data.totalClicks || 0);
+      }
     }
   } catch (error) {
     console.error('Error loading total clicks:', error);
   }
 }
+
 
 // --- 每秒送 pendingClicks ---
 setInterval(() => {
