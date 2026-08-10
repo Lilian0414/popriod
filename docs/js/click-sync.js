@@ -16,8 +16,9 @@ export class ClickSyncQueue {
         this.flushDelayMs = flushDelayMs;
         this.drainDelayMs = drainDelayMs;
         this.retryDelayMs = retryDelayMs;
-        this.setTimer = setTimer;
-        this.clearTimer = clearTimer;
+        // Browser timer functions throw when invoked with the queue as `this`.
+        this.setTimer = (callback, delay) => setTimer(callback, delay);
+        this.clearTimer = (timerId) => clearTimer(timerId);
         this.pendingClicks = 0;
         this.inFlight = false;
         this.timerId = null;
