@@ -93,3 +93,25 @@ test("never starts overlapping requests", async () => {
     resolveRequest(2);
     await firstFlush;
 });
+
+test("does not rebind browser-style timer functions", () => {
+    let timerThis = "not called";
+
+    function setTimer() {
+        timerThis = this;
+        return 1;
+    }
+
+    const queue = new ClickSyncQueue({
+        async addClicks() {
+            return 1;
+        },
+    }, {
+        setTimer,
+        clearTimer() {},
+    });
+
+    queue.add();
+
+    assert.equal(timerThis, undefined);
+});
