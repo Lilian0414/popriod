@@ -1,4 +1,5 @@
 export const MAX_BATCH_SIZE = 20;
+export const DEFAULT_REQUEST_TIMEOUT_MS = 8000;
 
 function readTotalClicks(payload) {
     const totalClicks = Number(payload?.totalClicks);
@@ -18,12 +19,57 @@ async function readJsonResponse(response) {
     return response.json();
 }
 
-export function createCounterApi({ baseUrl, fetchImpl = fetch }) {
+async function fetchWithTimeout(fetchImpl, url, options, {
+    timeoutMs,
+    setTimer,
+    clearTimer,
+}) {
+    const controller = new AbortController();
+    let timeoutId;
+
+    const timeoutPromise = new Promise((resolve, reject) => {
+        timeoutId = setTimer(() => {
+            controller.abort();
+            const error = new Error(`API request timed out after ${timeoutMs}ms`);
+            error.name = "TimeoutError";
+            reject(error);
+        }, timeoutMs);
+    });
+
+    try {
+        const requestPromise = Promise.resolve().then(() => fetchImpl(url, {
+            ...options,
+            signal: controller.signal,
+        }));
+
+        return await Promise.race([requestPromise, timeoutPromise]);
+    } finally {
+        clearTimer(timeoutId);
+    }
+}
+
+export function createCounterApi({
+    baseUrl,
+    fetchImpl = fetch,
+    timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
+    setTimer = setTimeout,
+    clearTimer = clearTimeout,
+}) {
+    if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+        throw new RangeError("timeoutMs must be a positive number");
+    }
+
     const apiUrl = `${baseUrl.replace(/\/$/, "")}/api/clicks`;
+
+    const request = (options) => fetchWithTimeout(fetchImpl, apiUrl, options, {
+        timeoutMs,
+        setTimer,
+        clearTimer,
+    });
 
     return {
         async getTotalClicks() {
-            const response = await fetchImpl(apiUrl, {
+            const response = await request({
                 headers: { Accept: "application/json" },
             });
 
@@ -35,7 +81,7 @@ export function createCounterApi({ baseUrl, fetchImpl = fetch }) {
                 throw new RangeError(`clicks must be an integer from 1 to ${MAX_BATCH_SIZE}`);
             }
 
-            const response = await fetchImpl(apiUrl, {
+            const response = await request({
                 method: "POST",
                 headers: {
                     Accept: "application/json",
