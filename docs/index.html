@@ -1,21 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#fde6fa">
     <title>popriod</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <div class="score"><span id="clickCount">0</span></div>
-        <div class="cat-container">
-            <img src="1.png" alt="Popcat" id="cat">
-            <img src="2.png" alt="Popcat" id="cat2" style="display: none;">
+    <main class="container">
+        <div class="score" aria-label="個人點擊數">
+            <span id="clickCount">0</span>
         </div>
-    </div>
-    <div class="global-fixed"><span id="globalClickCount">0</span></div>
-    <script src="script.js"></script>
-</body>
 
-</html> 
+        <button
+            class="cat-button"
+            id="popButton"
+            type="button"
+            aria-label="點擊貓咪"
+        >
+            <img src="1.png" alt="" id="cat" draggable="false">
+            <img src="2.png" alt="" id="cat2" draggable="false" hidden>
+        </button>
+    </main>
+
+    <div class="global-fixed" aria-label="全世界累積點擊數">
+        <span id="globalClickCount" aria-live="polite">0</span>
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
