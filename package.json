@@ -1,0 +1,10 @@
+{
+  "name": "popriod-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check docs/script.js && node --check docs/js/counter-api.js && node --check docs/js/click-sync.js && node --check docs/js/effects.js",
+    "test": "node --test"
+  }
+}
