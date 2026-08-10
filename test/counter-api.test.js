@@ -49,3 +49,21 @@ test("rejects malformed totals", async () => {
 
     await assert.rejects(() => api.getTotalClicks(), /invalid totalClicks/);
 });
+
+test("aborts API requests that exceed the timeout", async () => {
+    let requestSignal;
+    const api = createCounterApi({
+        baseUrl: "https://example.test",
+        timeoutMs: 5,
+        fetchImpl: async (url, options) => {
+            requestSignal = options.signal;
+            return new Promise(() => {});
+        },
+    });
+
+    await assert.rejects(
+        () => api.getTotalClicks(),
+        (error) => error.name === "TimeoutError" && /timed out/.test(error.message),
+    );
+    assert.equal(requestSignal.aborted, true);
+});
