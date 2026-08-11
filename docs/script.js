@@ -1,11 +1,11 @@
-import { createCounterApi } from "./js/counter-api.js?v=20260811-2";
-import { ClickSyncQueue } from "./js/click-sync.js?v=20260811-2";
+import { createCounterApi } from "./js/counter-api.js?v=20260811-3";
+import { ClickSyncQueue } from "./js/click-sync.js?v=20260811-3";
 import {
     createCatEffects,
     createGlobalCounterRenderer,
     createScoreBounce,
     createSoundPlayer,
-} from "./js/effects.js?v=20260811-2";
+} from "./js/effects.js?v=20260811-3";
 
 const API_BASE = "https://fuckperiod-api.vercel.app";
 const GLOBAL_POLL_INTERVAL_MS = 8000;
