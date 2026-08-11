@@ -72,7 +72,7 @@ export function createScoreBounce(element) {
 export function createCatEffects({ button, closedImage, openImage, body }) {
     const clickWindowMs = 1000;
     const frenzyThreshold = 8;
-    const frenzyDurationMs = 3000;
+    const frenzyDurationMs = 1200;
     let clickTimes = [];
     let pressed = false;
     let frenzy = false;
