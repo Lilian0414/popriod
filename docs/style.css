@@ -18,11 +18,40 @@ body {
     align-items: center;
     justify-content: center;
     background-color: #fde6fa;
-    background-image: url("background.png");
-    background-position: center;
-    background-size: cover;
+    position: relative;
+    isolation: isolate;
     font-family: Arial, sans-serif;
     cursor: url("cursor.png"), auto;
+}
+
+body::before,
+body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background-position: center;
+    background-size: cover;
+    pointer-events: none;
+    transform: translateZ(0);
+}
+
+body::before {
+    background-image: url("background.png");
+    background-image: image-set(
+        url("background.webp") type("image/webp"),
+        url("background.png") type("image/png")
+    );
+}
+
+body::after {
+    background-image: url("background2.png");
+    background-image: image-set(
+        url("background2.webp") type("image/webp"),
+        url("background2.png") type("image/png")
+    );
+    opacity: 0;
+    transition: opacity 100ms linear;
 }
 
 [hidden] {
@@ -119,7 +148,11 @@ body {
 }
 
 body.frenzy-mode {
-    background-image: url("background2.png");
+    background-color: #fde6fa;
+}
+
+body.frenzy-mode::after {
+    opacity: 1;
 }
 
 body.frenzy-mode .cat-button {
