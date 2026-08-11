@@ -60,8 +60,12 @@ test("the app loads and handles touch-style pointer events", async () => {
     const originalSetTimeout = globalThis.setTimeout;
     const originalClearTimeout = globalThis.clearTimeout;
     let nextTimerId = 1;
+    const timerDelays = [];
 
-    globalThis.setTimeout = () => nextTimerId++;
+    globalThis.setTimeout = (callback, delay) => {
+        timerDelays.push(delay);
+        return nextTimerId++;
+    };
     globalThis.clearTimeout = () => {};
     globalThis.requestAnimationFrame = () => 1;
     globalThis.cancelAnimationFrame = () => {};
@@ -149,6 +153,7 @@ test("the app loads and handles touch-style pointer events", async () => {
         assert.equal(elements.clickCount.textContent, "8");
         assert.equal(body.classList.contains("frenzy-mode"), true);
         assert.equal(elements.cat2.hidden, false);
+        assert.equal(timerDelays.includes(1200), true);
     } finally {
         globalThis.setTimeout = originalSetTimeout;
         globalThis.clearTimeout = originalClearTimeout;
