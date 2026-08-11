@@ -1,11 +1,11 @@
-import { createCounterApi } from "./js/counter-api.js?v=20260811-5";
-import { ClickSyncQueue } from "./js/click-sync.js?v=20260811-5";
+import { createCounterApi } from "./js/counter-api.js?v=20260811-6";
+import { ClickSyncQueue } from "./js/click-sync.js?v=20260811-6";
 import {
     createCatEffects,
     createGlobalCounterRenderer,
     createScoreBounce,
     createSoundPlayer,
-} from "./js/effects.js?v=20260811-5";
+} from "./js/effects.js?v=20260811-6";
 
 const API_BASE = "https://fuckperiod-api.vercel.app";
 const GLOBAL_POLL_INTERVAL_MS = 8000;
@@ -27,20 +27,30 @@ const catEffects = createCatEffects({
     body: document.body,
 });
 const playSound = createSoundPlayer([
-    new URL("./pa2.ogg", import.meta.url),
-    new URL("./pa2.mp3", import.meta.url),
+    new URL("./pa2.ogg?v=20260811-6", import.meta.url),
+    new URL("./pa2.mp3?v=20260811-6", import.meta.url),
 ]);
 
 let localCount = loadLocalCount();
 let localSaveTimer = null;
 let globalPollTimer = null;
+let confirmedGlobalTotal = 0;
+let pendingGlobalClicks = 0;
 
 clickCountElement.textContent = String(localCount);
 
 const syncQueue = new ClickSyncQueue(api, {
-    onTotal: (totalClicks) => renderGlobalTotal(totalClicks),
+    onTotal: (totalClicks, acceptedClicks) => {
+        confirmedGlobalTotal = Math.max(confirmedGlobalTotal, totalClicks);
+        pendingGlobalClicks = Math.max(0, pendingGlobalClicks - acceptedClicks);
+        renderProjectedGlobalTotal();
+    },
     onError: (error) => console.error("Error syncing clicks:", error),
 });
+
+function renderProjectedGlobalTotal({ animate = true } = {}) {
+    renderGlobalTotal(confirmedGlobalTotal + pendingGlobalClicks, { animate });
+}
 
 function loadLocalCount() {
     try {
@@ -74,7 +84,9 @@ function scheduleLocalSave() {
 
 function registerPop() {
     localCount += 1;
+    pendingGlobalClicks += 1;
     clickCountElement.textContent = String(localCount);
+    renderProjectedGlobalTotal({ animate: false });
     bounceScore();
     playSound();
     catEffects.recordPop();
@@ -85,7 +97,10 @@ function registerPop() {
 async function refreshGlobalTotal({ animate = true } = {}) {
     try {
         const totalClicks = await api.getTotalClicks();
-        renderGlobalTotal(totalClicks, { animate });
+        if (pendingGlobalClicks === 0) {
+            confirmedGlobalTotal = Math.max(confirmedGlobalTotal, totalClicks);
+            renderProjectedGlobalTotal({ animate });
+        }
     } catch (error) {
         console.error("Error loading total clicks:", error);
     }
