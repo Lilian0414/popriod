@@ -94,6 +94,29 @@ test("never starts overlapping requests", async () => {
     await firstFlush;
 });
 
+test("backs off repeated failed requests", async () => {
+    const timers = createTimerHarness();
+    const queue = new ClickSyncQueue({
+        async addClicks() {
+            throw new Error("offline");
+        },
+    }, {
+        ...timers,
+        retryDelayMs: 100,
+        maxRetryDelayMs: 250,
+    });
+
+    queue.add();
+    await queue.flush();
+    assert.deepEqual([...timers.delays.values()], [100]);
+
+    await queue.flush();
+    assert.deepEqual([...timers.delays.values()], [200]);
+
+    await queue.flush();
+    assert.deepEqual([...timers.delays.values()], [250]);
+});
+
 test("does not rebind browser-style timer functions", () => {
     let timerThis = "not called";
 
