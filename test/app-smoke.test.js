@@ -60,6 +60,7 @@ test("the app loads and handles touch-style pointer events", async () => {
     const originalSetTimeout = globalThis.setTimeout;
     const originalClearTimeout = globalThis.clearTimeout;
     let nextTimerId = 1;
+    let audioPlayCount = 0;
     const timerDelays = [];
 
     globalThis.setTimeout = (callback, delay) => {
@@ -111,6 +112,7 @@ test("the app loads and handles touch-style pointer events", async () => {
 
     globalThis.Audio = class {
         play() {
+            audioPlayCount += 1;
             return Promise.resolve();
         }
     };
@@ -138,8 +140,10 @@ test("the app loads and handles touch-style pointer events", async () => {
 
         elements.popButton.dispatch("pointerdown", pointerEvent);
         assert.equal(elements.clickCount.textContent, "1");
+        assert.equal(audioPlayCount, 1);
         assert.equal(elements.cat.hidden, true);
         assert.equal(elements.cat2.hidden, false);
+        assert.equal(timerDelays.includes(3000), true);
 
         elements.popButton.dispatch("pointerup");
         assert.equal(elements.cat.hidden, false);

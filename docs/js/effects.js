@@ -127,7 +127,7 @@ export function createCatEffects({ button, closedImage, openImage, body }) {
     };
 }
 
-function createAudioPool(url, poolSize = 3) {
+function createAudioPool(url, poolSize = 5) {
     const pool = Array.from({ length: poolSize }, () => {
         const audio = new Audio(url);
         audio.preload = "auto";
@@ -139,70 +139,44 @@ function createAudioPool(url, poolSize = 3) {
         const audio = pool[index];
         index = (index + 1) % pool.length;
         audio.currentTime = 0;
-        void audio.play().catch(() => {});
+        void audio.play().catch((error) => {
+            console.warn("Unable to play pop sound:", error);
+        });
     };
 }
 
-export function createSoundPlayer(url) {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+export function createSoundPlayer(sources, {
+    HowlClass = window.Howl,
+    poolSize = 5,
+} = {}) {
+    const urls = (Array.isArray(sources) ? sources : [sources]).map(String);
 
-    if (!AudioContextClass) {
-        return createAudioPool(url);
+    if (typeof HowlClass !== "function") {
+        return createAudioPool(urls.at(-1), poolSize);
     }
 
-    let context = null;
-    let audioBuffer = null;
-    let loadingPromise = null;
-    let firstPlayQueued = false;
+    let waitingForUnlock = false;
+    const sound = new HowlClass({
+        src: urls,
+        preload: true,
+        pool: poolSize,
+        onloaderror(id, error) {
+            console.warn("Unable to load pop sound:", error);
+        },
+        onplayerror() {
+            if (waitingForUnlock) {
+                return;
+            }
 
-    function loadAudio() {
-        context ??= new AudioContextClass();
-        loadingPromise ??= fetch(url)
-            .then((response) => {
-                if (!response.ok) {
-                    throw new Error(`Unable to load audio: ${response.status}`);
-                }
-                return response.arrayBuffer();
-            })
-            .then((data) => context.decodeAudioData(data))
-            .then((decoded) => {
-                audioBuffer = decoded;
-                return decoded;
+            waitingForUnlock = true;
+            sound.once("unlock", () => {
+                waitingForUnlock = false;
+                sound.play();
             });
-
-        return loadingPromise;
-    }
-
-    function startSource() {
-        if (!context || !audioBuffer) {
-            return;
-        }
-
-        const source = context.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(context.destination);
-        source.start();
-    }
+        },
+    });
 
     return function playSound() {
-        context ??= new AudioContextClass();
-        void context.resume().catch(() => {});
-
-        if (audioBuffer) {
-            startSource();
-            return;
-        }
-
-        if (firstPlayQueued) {
-            return;
-        }
-
-        firstPlayQueued = true;
-        void loadAudio()
-            .then(startSource)
-            .catch(() => {})
-            .finally(() => {
-                firstPlayQueued = false;
-            });
+        sound.play();
     };
 }

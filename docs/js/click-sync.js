@@ -4,7 +4,7 @@ export class ClickSyncQueue {
     constructor(api, {
         onTotal = () => {},
         onError = () => {},
-        flushDelayMs = 700,
+        flushDelayMs = 3000,
         drainDelayMs = 150,
         retryDelayMs = 2000,
         maxRetryDelayMs = 30000,

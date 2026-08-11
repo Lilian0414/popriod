@@ -1,11 +1,11 @@
-import { createCounterApi } from "./js/counter-api.js?v=20260811-4";
-import { ClickSyncQueue } from "./js/click-sync.js?v=20260811-4";
+import { createCounterApi } from "./js/counter-api.js?v=20260811-5";
+import { ClickSyncQueue } from "./js/click-sync.js?v=20260811-5";
 import {
     createCatEffects,
     createGlobalCounterRenderer,
     createScoreBounce,
     createSoundPlayer,
-} from "./js/effects.js?v=20260811-4";
+} from "./js/effects.js?v=20260811-5";
 
 const API_BASE = "https://fuckperiod-api.vercel.app";
 const GLOBAL_POLL_INTERVAL_MS = 8000;
@@ -26,7 +26,10 @@ const catEffects = createCatEffects({
     openImage,
     body: document.body,
 });
-const playSound = createSoundPlayer(new URL("./pa2.mp3", import.meta.url));
+const playSound = createSoundPlayer([
+    new URL("./pa2.ogg", import.meta.url),
+    new URL("./pa2.mp3", import.meta.url),
+]);
 
 let localCount = loadLocalCount();
 let localSaveTimer = null;
@@ -72,11 +75,11 @@ function scheduleLocalSave() {
 function registerPop() {
     localCount += 1;
     clickCountElement.textContent = String(localCount);
-    syncQueue.add();
-    scheduleLocalSave();
-    catEffects.recordPop();
     bounceScore();
     playSound();
+    catEffects.recordPop();
+    scheduleLocalSave();
+    syncQueue.add();
 }
 
 async function refreshGlobalTotal({ animate = true } = {}) {
@@ -164,7 +167,7 @@ window.addEventListener("pagehide", () => {
 
 function preloadFrenzyBackground() {
     const image = new Image();
-    image.src = "background2.png";
+    image.src = "background2.webp";
     void image.decode?.().catch(() => {});
 }
 

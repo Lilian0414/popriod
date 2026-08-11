@@ -18,3 +18,8 @@ npm test
 ```
 
 測試使用 Node.js 內建的 test runner，不需要額外安裝測試框架。
+
+## 第三方元件
+
+手機音效播放使用 Howler.js Core 2.2.4；MIT 授權文字位於
+`docs/vendor/HOWLER-LICENSE.md`。
