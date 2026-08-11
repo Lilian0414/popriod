@@ -7,6 +7,7 @@ export class ClickSyncQueue {
         flushDelayMs = 700,
         drainDelayMs = 150,
         retryDelayMs = 2000,
+        maxRetryDelayMs = 30000,
         setTimer = setTimeout,
         clearTimer = clearTimeout,
     } = {}) {
@@ -16,12 +17,14 @@ export class ClickSyncQueue {
         this.flushDelayMs = flushDelayMs;
         this.drainDelayMs = drainDelayMs;
         this.retryDelayMs = retryDelayMs;
+        this.maxRetryDelayMs = maxRetryDelayMs;
         // Browser timer functions throw when invoked with the queue as `this`.
         this.setTimer = (callback, delay) => setTimer(callback, delay);
         this.clearTimer = (timerId) => clearTimer(timerId);
         this.pendingClicks = 0;
         this.inFlight = false;
         this.timerId = null;
+        this.retryAttempts = 0;
     }
 
     add(clicks = 1) {
@@ -68,17 +71,24 @@ export class ClickSyncQueue {
         try {
             const totalClicks = await this.api.addClicks(batchSize, { keepalive });
             succeeded = true;
+            this.retryAttempts = 0;
             this.onTotal(totalClicks);
             return true;
         } catch (error) {
             this.pendingClicks += batchSize;
+            this.retryAttempts += 1;
             this.onError(error);
             return false;
         } finally {
             this.inFlight = false;
 
             if (this.pendingClicks > 0) {
-                const delay = succeeded ? this.drainDelayMs : this.retryDelayMs;
+                const retryMultiplier = 2 ** Math.min(this.retryAttempts - 1, 20);
+                const retryDelay = Math.min(
+                    this.retryDelayMs * retryMultiplier,
+                    this.maxRetryDelayMs,
+                );
+                const delay = succeeded ? this.drainDelayMs : retryDelay;
                 this.schedule(delay);
             }
         }
