@@ -72,7 +72,7 @@ export class ClickSyncQueue {
             const totalClicks = await this.api.addClicks(batchSize, { keepalive });
             succeeded = true;
             this.retryAttempts = 0;
-            this.onTotal(totalClicks);
+            this.onTotal(totalClicks, batchSize);
             return true;
         } catch (error) {
             this.pendingClicks += batchSize;

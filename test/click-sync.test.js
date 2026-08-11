@@ -27,13 +27,17 @@ function createTimerHarness() {
 
 test("batches pending clicks without discarding the remainder", async () => {
     const calls = [];
+    const totals = [];
     const timers = createTimerHarness();
     const queue = new ClickSyncQueue({
         async addClicks(clicks) {
             calls.push(clicks);
             return 100 + calls.reduce((sum, value) => sum + value, 0);
         },
-    }, timers);
+    }, {
+        ...timers,
+        onTotal: (total, batchSize) => totals.push([total, batchSize]),
+    });
 
     queue.add(45);
 
@@ -45,6 +49,7 @@ test("batches pending clicks without discarding the remainder", async () => {
     await queue.flush();
     await queue.flush();
     assert.deepEqual(calls, [20, 20, 5]);
+    assert.deepEqual(totals, [[120, 20], [140, 20], [145, 5]]);
     assert.equal(queue.pendingClicks, 0);
 });
 

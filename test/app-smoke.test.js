@@ -140,6 +140,7 @@ test("the app loads and handles touch-style pointer events", async () => {
 
         elements.popButton.dispatch("pointerdown", pointerEvent);
         assert.equal(elements.clickCount.textContent, "1");
+        assert.equal(elements.globalClickCount.textContent, "124");
         assert.equal(audioPlayCount, 1);
         assert.equal(elements.cat.hidden, true);
         assert.equal(elements.cat2.hidden, false);
