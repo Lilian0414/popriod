@@ -6,7 +6,7 @@ import {
     createPopValueRenderer,
     createScoreBounce,
     createSoundPlayer,
-} from "./js/effects.js?v=20260817-1";
+} from "./js/effects.js?v=20260817-2";
 
 const API_BASE = "https://fuckperiod-api.vercel.app";
 const GLOBAL_POLL_INTERVAL_MS = 8000;
@@ -96,7 +96,7 @@ function flashCritical() {
     criticalFlashTimer = setTimeout(() => {
         document.body.classList.remove("critical-hit");
         criticalFlashTimer = null;
-    }, 420);
+    }, 620);
 }
 
 function registerPop(position = {}) {
