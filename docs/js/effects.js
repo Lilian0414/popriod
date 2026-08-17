@@ -69,13 +69,132 @@ export function createScoreBounce(element) {
     };
 }
 
-export function createCatEffects({ button, closedImage, openImage, body }) {
-    const clickWindowMs = 1000;
-    const frenzyThreshold = 8;
-    const frenzyDurationMs = 1200;
+export function createPopValueRenderer({
+    root,
+    anchor,
+    poolSize = 24,
+    random = Math.random,
+    setTimer = setTimeout,
+} = {}) {
+    const pool = [];
+    let reuseIndex = 0;
+
+    function createEntry() {
+        const element = root.ownerDocument.createElement("span");
+        element.className = "pop-value";
+        element.hidden = true;
+        element.setAttribute("aria-hidden", "true");
+        root.appendChild(element);
+        const entry = { element, animation: null, version: 0 };
+        pool.push(entry);
+        return entry;
+    }
+
+    function acquireEntry() {
+        const available = pool.find(({ element }) => element.hidden);
+        if (available) {
+            return available;
+        }
+
+        if (pool.length < poolSize) {
+            return createEntry();
+        }
+
+        const entry = pool[reuseIndex];
+        reuseIndex = (reuseIndex + 1) % pool.length;
+        return entry;
+    }
+
+    function fallbackPosition() {
+        const bounds = anchor.getBoundingClientRect();
+        return {
+            x: bounds.left + (bounds.width / 2),
+            y: bounds.top + (bounds.height / 2),
+        };
+    }
+
+    return function showPopValue(points, {
+        x,
+        y,
+        critical = false,
+    } = {}) {
+        const fallback = Number.isFinite(x) && Number.isFinite(y)
+            ? null
+            : fallbackPosition();
+        const originX = (fallback?.x ?? x) + ((random() - 0.5) * 34);
+        const originY = (fallback?.y ?? y) + ((random() - 0.5) * 18);
+        const driftX = Math.round((random() - 0.5) * 42);
+        const entry = acquireEntry();
+        const { element } = entry;
+        const version = entry.version + 1;
+        entry.version = version;
+        entry.animation?.cancel();
+
+        element.hidden = false;
+        element.textContent = critical ? "爆擊 +10" : `+${points}`;
+        element.className = critical
+            ? "pop-value pop-value--critical"
+            : `pop-value pop-value--${points}`;
+        element.style.left = `${originX}px`;
+        element.style.top = `${originY}px`;
+
+        const hide = () => {
+            if (entry.version === version) {
+                element.hidden = true;
+                entry.animation = null;
+            }
+        };
+
+        if (reducedMotion.matches || typeof element.animate !== "function") {
+            setTimer(hide, critical ? 700 : 480);
+            return;
+        }
+
+        const peakScale = critical ? 1.32 : (points === 2 ? 1.12 : 1);
+        entry.animation = element.animate([
+            {
+                opacity: 0,
+                transform: "translate3d(-50%, 8px, 0) scale(0.72)",
+            },
+            {
+                opacity: 1,
+                transform: `translate3d(calc(-50% + ${driftX / 3}px), -12px, 0) scale(${peakScale})`,
+                offset: 0.18,
+            },
+            {
+                opacity: 0,
+                transform: `translate3d(calc(-50% + ${driftX}px), -76px, 0) scale(${critical ? 1.08 : 0.94})`,
+            },
+        ], {
+            duration: critical ? 920 : 680,
+            easing: "cubic-bezier(0.2, 0.75, 0.25, 1)",
+        });
+        entry.animation.onfinish = hide;
+    };
+}
+
+export function createCatEffects({
+    button,
+    closedImage,
+    openImage,
+    body,
+    clickWindowMs = 1000,
+    frenzyThreshold = 8,
+    frenzyDurationMs = 1200,
+    powerUpDelayMs = 3000,
+    criticalMinDelayMs = 5000,
+    criticalMaxDelayMs = 10000,
+    random = Math.random,
+    setTimer = setTimeout,
+    clearTimer = clearTimeout,
+}) {
     let clickTimes = [];
     let pressed = false;
     let frenzy = false;
+    let powered = false;
+    let frenzyStartedAt = null;
+    let lastPopAt = null;
+    let nextCriticalAt = null;
     let frenzyTimer = null;
 
     function renderImages() {
@@ -87,16 +206,35 @@ export function createCatEffects({ button, closedImage, openImage, body }) {
 
     function deactivateFrenzy() {
         frenzy = false;
+        powered = false;
+        frenzyStartedAt = null;
+        lastPopAt = null;
+        nextCriticalAt = null;
+        clickTimes = [];
         body.classList.remove("frenzy-mode");
+        body.classList.remove("powered-frenzy");
         frenzyTimer = null;
+        renderImages();
+    }
+
+    function activateFrenzy(now) {
+        frenzy = true;
+        frenzyStartedAt = now;
+        body.classList.add("frenzy-mode");
         renderImages();
     }
 
     function scheduleFrenzyEnd() {
         if (frenzyTimer !== null) {
-            clearTimeout(frenzyTimer);
+            clearTimer(frenzyTimer);
         }
-        frenzyTimer = setTimeout(deactivateFrenzy, frenzyDurationMs);
+        frenzyTimer = setTimer(deactivateFrenzy, frenzyDurationMs);
+    }
+
+    function scheduleNextCritical(now) {
+        const spread = Math.max(0, criticalMaxDelayMs - criticalMinDelayMs);
+        const unit = Math.min(1, Math.max(0, Number(random()) || 0));
+        nextCriticalAt = now + criticalMinDelayMs + (spread * unit);
     }
 
     return {
@@ -111,18 +249,42 @@ export function createCatEffects({ button, closedImage, openImage, body }) {
         },
 
         recordPop(now = performance.now()) {
+            if (frenzy && lastPopAt !== null && now - lastPopAt >= frenzyDurationMs) {
+                if (frenzyTimer !== null) {
+                    clearTimer(frenzyTimer);
+                }
+                deactivateFrenzy();
+            }
+
             clickTimes = clickTimes.filter((time) => now - time < clickWindowMs);
             clickTimes.push(now);
 
-            if (clickTimes.length >= frenzyThreshold) {
-                frenzy = true;
-                body.classList.add("frenzy-mode");
-                renderImages();
+            if (!frenzy && clickTimes.length >= frenzyThreshold) {
+                activateFrenzy(now);
+            }
+
+            if (frenzy && !powered && now - frenzyStartedAt >= powerUpDelayMs) {
+                powered = true;
+                body.classList.add("powered-frenzy");
+                scheduleNextCritical(now);
+            }
+
+            const critical = powered && nextCriticalAt !== null && now >= nextCriticalAt;
+            if (critical) {
+                scheduleNextCritical(now);
             }
 
             if (frenzy) {
+                lastPopAt = now;
                 scheduleFrenzyEnd();
             }
+
+            return {
+                points: critical ? 10 : (powered ? 2 : 1),
+                critical,
+                frenzy,
+                powered,
+            };
         },
     };
 }

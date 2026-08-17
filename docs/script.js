@@ -1,11 +1,12 @@
-import { createCounterApi } from "./js/counter-api.js?v=20260811-6";
-import { ClickSyncQueue } from "./js/click-sync.js?v=20260811-6";
+import { createCounterApi } from "./js/counter-api.js?v=20260817-1";
+import { ClickSyncQueue } from "./js/click-sync.js?v=20260817-1";
 import {
     createCatEffects,
     createGlobalCounterRenderer,
+    createPopValueRenderer,
     createScoreBounce,
     createSoundPlayer,
-} from "./js/effects.js?v=20260811-6";
+} from "./js/effects.js?v=20260817-1";
 
 const API_BASE = "https://fuckperiod-api.vercel.app";
 const GLOBAL_POLL_INTERVAL_MS = 8000;
@@ -20,6 +21,10 @@ const globalClickCountElement = document.getElementById("globalClickCount");
 const api = createCounterApi({ baseUrl: API_BASE });
 const renderGlobalTotal = createGlobalCounterRenderer(globalClickCountElement);
 const bounceScore = createScoreBounce(clickCountElement);
+const showPopValue = createPopValueRenderer({
+    root: document.body,
+    anchor: button,
+});
 const catEffects = createCatEffects({
     button,
     closedImage,
@@ -27,13 +32,14 @@ const catEffects = createCatEffects({
     body: document.body,
 });
 const playSound = createSoundPlayer([
-    new URL("./pa2.ogg?v=20260811-6", import.meta.url),
-    new URL("./pa2.mp3?v=20260811-6", import.meta.url),
+    new URL("./pa2.ogg?v=20260817-1", import.meta.url),
+    new URL("./pa2.mp3?v=20260817-1", import.meta.url),
 ]);
 
 let localCount = loadLocalCount();
 let localSaveTimer = null;
 let globalPollTimer = null;
+let criticalFlashTimer = null;
 let confirmedGlobalTotal = 0;
 let pendingGlobalClicks = 0;
 
@@ -82,16 +88,34 @@ function scheduleLocalSave() {
     localSaveTimer = setTimeout(saveLocalCount, LOCAL_SAVE_DELAY_MS);
 }
 
-function registerPop() {
-    localCount += 1;
-    pendingGlobalClicks += 1;
+function flashCritical() {
+    document.body.classList.add("critical-hit");
+    if (criticalFlashTimer !== null) {
+        clearTimeout(criticalFlashTimer);
+    }
+    criticalFlashTimer = setTimeout(() => {
+        document.body.classList.remove("critical-hit");
+        criticalFlashTimer = null;
+    }, 420);
+}
+
+function registerPop(position = {}) {
+    const result = catEffects.recordPop();
+    localCount += result.points;
+    pendingGlobalClicks += result.points;
     clickCountElement.textContent = String(localCount);
     renderProjectedGlobalTotal({ animate: false });
     bounceScore();
+    showPopValue(result.points, {
+        ...position,
+        critical: result.critical,
+    });
+    if (result.critical) {
+        flashCritical();
+    }
     playSound();
-    catEffects.recordPop();
     scheduleLocalSave();
-    syncQueue.add();
+    syncQueue.add(result.points);
 }
 
 async function refreshGlobalTotal({ animate = true } = {}) {
@@ -139,7 +163,7 @@ button.addEventListener("pointerdown", (event) => {
         // Pointer capture may be unavailable in older browsers.
     }
     catEffects.press();
-    registerPop();
+    registerPop({ x: event.clientX, y: event.clientY });
 });
 
 for (const eventName of ["pointerup", "pointercancel", "lostpointercapture"]) {
