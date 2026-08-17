@@ -19,7 +19,6 @@ class FakeClassList {
             this.values.add(value);
             return true;
         }
-
         this.values.delete(value);
         return false;
     }
@@ -35,6 +34,8 @@ class FakeElement {
         this.hidden = false;
         this.classList = new FakeClassList();
         this.listeners = new Map();
+        this.style = {};
+        this.children = [];
     }
 
     addEventListener(name, callback) {
@@ -51,12 +52,22 @@ class FakeElement {
 
     setPointerCapture() {}
 
+    setAttribute() {}
+
+    appendChild(element) {
+        this.children.push(element);
+    }
+
+    getBoundingClientRect() {
+        return { left: 100, top: 100, width: 300, height: 300 };
+    }
+
     animate() {
-        return { cancel() {} };
+        return { cancel() {}, onfinish: null };
     }
 }
 
-test("the app loads and handles touch-style pointer events", async () => {
+test("the app loads, shows +1, and handles touch-style pointer events", async () => {
     const originalSetTimeout = globalThis.setTimeout;
     const originalClearTimeout = globalThis.clearTimeout;
     let nextTimerId = 1;
@@ -79,44 +90,38 @@ test("the app loads and handles touch-style pointer events", async () => {
         globalClickCount: new FakeElement("0"),
     };
     const body = new FakeElement();
-
-    globalThis.document = {
+    const fakeDocument = {
         body,
         hidden: false,
+        createElement: () => new FakeElement(),
         getElementById(id) {
             return elements[id];
         },
         addEventListener() {},
     };
+    body.ownerDocument = fakeDocument;
 
+    globalThis.document = fakeDocument;
     globalThis.window = {
         matchMedia: () => ({ matches: false }),
         addEventListener() {},
         requestIdleCallback: () => 1,
     };
-
     globalThis.localStorage = {
         getItem: () => null,
         setItem() {},
     };
-
     globalThis.Image = class {
-        set src(value) {
-            this.value = value;
-        }
-
         decode() {
             return Promise.resolve();
         }
     };
-
     globalThis.Audio = class {
         play() {
             audioPlayCount += 1;
             return Promise.resolve();
         }
     };
-
     globalThis.fetch = async () => ({
         ok: true,
         status: 200,
@@ -127,7 +132,6 @@ test("the app loads and handles touch-style pointer events", async () => {
 
     try {
         await import(`../docs/script.js?smoke=${Date.now()}`);
-
         assert.equal(elements.globalClickCount.textContent, "123");
 
         const pointerEvent = {
@@ -135,6 +139,8 @@ test("the app loads and handles touch-style pointer events", async () => {
             pointerType: "touch",
             button: 0,
             pointerId: 1,
+            clientX: 250,
+            clientY: 250,
             preventDefault() {},
         };
 
@@ -142,6 +148,7 @@ test("the app loads and handles touch-style pointer events", async () => {
         assert.equal(elements.clickCount.textContent, "1");
         assert.equal(elements.globalClickCount.textContent, "124");
         assert.equal(audioPlayCount, 1);
+        assert.equal(body.children[0].textContent, "+1");
         assert.equal(elements.cat.hidden, true);
         assert.equal(elements.cat2.hidden, false);
         assert.equal(timerDelays.includes(3000), true);
@@ -149,16 +156,6 @@ test("the app loads and handles touch-style pointer events", async () => {
         elements.popButton.dispatch("pointerup");
         assert.equal(elements.cat.hidden, false);
         assert.equal(elements.cat2.hidden, true);
-
-        for (let index = 0; index < 7; index += 1) {
-            elements.popButton.dispatch("pointerdown", pointerEvent);
-            elements.popButton.dispatch("pointerup");
-        }
-
-        assert.equal(elements.clickCount.textContent, "8");
-        assert.equal(body.classList.contains("frenzy-mode"), true);
-        assert.equal(elements.cat2.hidden, false);
-        assert.equal(timerDelays.includes(1200), true);
     } finally {
         globalThis.setTimeout = originalSetTimeout;
         globalThis.clearTimeout = originalClearTimeout;

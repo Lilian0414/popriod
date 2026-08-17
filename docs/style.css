@@ -68,6 +68,16 @@ body::after {
     text-align: center;
 }
 
+.container::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 600;
+    background: radial-gradient(circle, rgb(255 255 255 / 74%) 0%, rgb(255 77 151 / 25%) 42%, transparent 72%);
+    opacity: 0;
+    pointer-events: none;
+}
+
 .score {
     position: fixed;
     top: max(20px, env(safe-area-inset-top));
@@ -141,10 +151,37 @@ body::after {
 }
 
 .score span,
-.global-fixed span {
+.global-fixed span,
+.pop-value {
     font-family: "Kaisei Decol Bold", Arial, sans-serif;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
+}
+
+.pop-value {
+    position: fixed;
+    z-index: 1200;
+    color: #785e72;
+    font-size: clamp(1.35rem, 4vw, 2rem);
+    line-height: 1;
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+    will-change: transform, opacity;
+    text-shadow: 0 1px 0 rgb(255 255 255 / 75%);
+}
+
+.pop-value--2 {
+    color: #ef477e;
+    font-size: clamp(1.55rem, 4.8vw, 2.35rem);
+    text-shadow: 0 1px 0 #fff, 0 0 9px rgb(255 255 255 / 75%);
+}
+
+.pop-value--critical {
+    color: #d71956;
+    font-size: clamp(2rem, 7vw, 3.7rem);
+    letter-spacing: 0.04em;
+    text-shadow: 0 2px 0 #fff, 0 0 8px #fff, 0 0 18px rgb(255 224 76 / 90%);
 }
 
 body.frenzy-mode {
@@ -168,6 +205,23 @@ body.frenzy-mode #cat2 {
     animation: rotate 500ms infinite;
 }
 
+body.powered-frenzy .score {
+    color: #fffbd2;
+    text-shadow: 0 0 8px #fff, 0 0 16px #ff346e;
+}
+
+body.powered-frenzy .cat-button {
+    filter: drop-shadow(0 0 9px rgb(255 255 255 / 70%));
+}
+
+body.critical-hit .container::after {
+    animation: critical-flash 420ms ease-out;
+}
+
+body.critical-hit .cat-button {
+    animation: critical-punch 420ms ease-out;
+}
+
 @keyframes shake {
     0%, 100% { transform: translate3d(1px, 1px, 0) rotate(0deg); }
     25% { transform: translate3d(-1px, -1px, 0) rotate(-1deg); }
@@ -179,6 +233,17 @@ body.frenzy-mode #cat2 {
     0%, 100% { transform: translateZ(0) rotate(0deg); }
     25% { transform: translateZ(0) rotate(5deg); }
     75% { transform: translateZ(0) rotate(-5deg); }
+}
+
+@keyframes critical-flash {
+    0%, 100% { opacity: 0; }
+    22% { opacity: 1; }
+}
+
+@keyframes critical-punch {
+    0%, 100% { transform: scale(1); }
+    24% { transform: scale(1.13) rotate(-2deg); }
+    52% { transform: scale(0.96) rotate(2deg); }
 }
 
 @media (max-width: 600px) {
