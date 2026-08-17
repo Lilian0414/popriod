@@ -113,6 +113,14 @@ export function createPopValueRenderer({
         };
     }
 
+    function criticalPosition() {
+        const bounds = anchor.getBoundingClientRect();
+        return {
+            x: bounds.left + (bounds.width / 2),
+            y: bounds.top + (bounds.height * 0.24),
+        };
+    }
+
     return function showPopValue(points, {
         x,
         y,
@@ -121,9 +129,13 @@ export function createPopValueRenderer({
         const fallback = Number.isFinite(x) && Number.isFinite(y)
             ? null
             : fallbackPosition();
-        const originX = (fallback?.x ?? x) + ((random() - 0.5) * 34);
-        const originY = (fallback?.y ?? y) + ((random() - 0.5) * 18);
-        const driftX = Math.round((random() - 0.5) * 42);
+        const origin = critical ? criticalPosition() : {
+            x: fallback?.x ?? x,
+            y: fallback?.y ?? y,
+        };
+        const originX = origin.x + (critical ? 0 : ((random() - 0.5) * 28));
+        const originY = origin.y + (critical ? 0 : ((random() - 0.5) * 14));
+        const driftX = critical ? 0 : Math.round((random() - 0.5) * 32);
         const entry = acquireEntry();
         const { element } = entry;
         const version = entry.version + 1;
@@ -131,7 +143,8 @@ export function createPopValueRenderer({
         entry.animation?.cancel();
 
         element.hidden = false;
-        element.textContent = critical ? "爆擊 +10" : `+${points}`;
+        element.textContent = `+${points}`;
+        element.dataset.label = critical ? "爆擊！" : "";
         element.className = critical
             ? "pop-value pop-value--critical"
             : `pop-value pop-value--${points}`;
@@ -150,24 +163,34 @@ export function createPopValueRenderer({
             return;
         }
 
-        const peakScale = critical ? 1.32 : (points === 2 ? 1.12 : 1);
+        const peakScale = critical ? 1.2 : (points === 2 ? 1.16 : 1.08);
         entry.animation = element.animate([
             {
                 opacity: 0,
-                transform: "translate3d(-50%, 8px, 0) scale(0.72)",
+                transform: `translate3d(-50%, ${critical ? 18 : 10}px, 0) scale(${critical ? 0.42 : 0.58})`,
             },
             {
                 opacity: 1,
-                transform: `translate3d(calc(-50% + ${driftX / 3}px), -12px, 0) scale(${peakScale})`,
-                offset: 0.18,
+                transform: `translate3d(calc(-50% + ${driftX / 4}px), -8px, 0) scale(${peakScale})`,
+                offset: critical ? 0.14 : 0.16,
+            },
+            {
+                opacity: 1,
+                transform: `translate3d(calc(-50% + ${driftX / 2}px), -14px, 0) scale(${critical ? 0.94 : 0.92})`,
+                offset: critical ? 0.3 : 0.34,
+            },
+            {
+                opacity: 1,
+                transform: `translate3d(calc(-50% + ${driftX * 0.72}px), -24px, 0) scale(1)`,
+                offset: critical ? 0.62 : 0.58,
             },
             {
                 opacity: 0,
-                transform: `translate3d(calc(-50% + ${driftX}px), -76px, 0) scale(${critical ? 1.08 : 0.94})`,
+                transform: `translate3d(calc(-50% + ${driftX}px), ${critical ? -48 : -64}px, 0) scale(${critical ? 1 : 0.94})`,
             },
         ], {
-            duration: critical ? 920 : 680,
-            easing: "cubic-bezier(0.2, 0.75, 0.25, 1)",
+            duration: critical ? 880 : (points === 2 ? 660 : 620),
+            easing: "cubic-bezier(0.18, 0.8, 0.22, 1)",
         });
         entry.animation.onfinish = hide;
     };

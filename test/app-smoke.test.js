@@ -34,6 +34,7 @@ class FakeElement {
         this.hidden = false;
         this.classList = new FakeClassList();
         this.listeners = new Map();
+        this.dataset = {};
         this.style = {};
         this.children = [];
     }

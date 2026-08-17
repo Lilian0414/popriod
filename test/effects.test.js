@@ -125,6 +125,7 @@ test("places a pooled +1 effect near the pointer and styles critical hits", () =
         createElement() {
             const element = {
                 hidden: true,
+                dataset: {},
                 style: {},
                 setAttribute() {},
                 animate(keyframes, options) {
@@ -156,11 +157,16 @@ test("places a pooled +1 effect near the pointer and styles critical hits", () =
     assert.equal(created[0].style.left, "100px");
     assert.equal(created[0].style.top, "200px");
     assert.equal(created[0].className, "pop-value pop-value--1");
+    assert.equal(created[0].dataset.label, "");
 
     render(10, { x: 120, y: 180, critical: true });
     assert.equal(created.length, 2);
-    assert.equal(created[1].textContent, "爆擊 +10");
+    assert.equal(created[1].textContent, "+10");
+    assert.equal(created[1].dataset.label, "爆擊！");
     assert.equal(created[1].className, "pop-value pop-value--critical");
+    assert.equal(created[1].style.left, "100px");
+    assert.equal(created[1].style.top, "24px");
+    assert.equal(created[1].options.duration, 880);
 });
 
 test("preloads supported formats and plays synchronously through Howler", () => {
